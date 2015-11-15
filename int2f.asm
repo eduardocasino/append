@@ -8,92 +8,92 @@
 ;
 ; This program is distributed in the hope that it will be useful,
 ; but WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
 ; GNU General Public License for more details.
 ;
 ; You should have received a copy of the GNU General Public License
 ; along with this program; if not, write to the Free Software
-; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307	USA
 ;
 ; INT2F.ASM - Int2Fh hook
 ;
-; 04-06-01  casino_e@terra.es   First version
+; 04-06-01  casino_e@terra.es	First version
 ;
 
-old_int2f       dd      0       ; Original INT 2F handler
+old_int2f	dd	0	; Original INT 2F handler
 
-cmdnambuf       dd      0       ; Pointer to command name buffer
-cmdlinbuf       dd      0       ; Pointer to command line buffer
+cmdnambuf	dd	0	; Pointer to command name buffer
+cmdlinbuf	dd	0	; Pointer to command line buffer
 
 ; ===========================================================================
 ;  INT 2F HOOK
 ; ===========================================================================
 ;
-int2f:          cmp     ah, 0xAE                ; Installable command?
-                je      i2fae
-                cmp     ah, 0xB7                ; APPEND ?
-                je      i2fb700
-chain:          jmp     far [cs:old_int2f]      ; Nope, chain to old handler
+int2f:		cmp	ah, 0xAE		; Installable command?
+		je	i2fae
+		cmp	ah, 0xB7		; APPEND ?
+		je	i2fb700
+chain:		jmp	far [cs:old_int2f]	; Nope, chain to old handler
 
 ; ---------------------------------------------------------------------------
 ;  2FAE : INSTALLABLE COMMAND
 ; ---------------------------------------------------------------------------
 ;
-i2fae:          cmp     dx, 0xFFFF              ; Check magic number
-                jne     chain
+i2fae:		cmp	dx, 0xFFFF		; Check magic number
+		jne	chain
 
 ; ----- 2FAE00 : INSTALLABLE COMMAND - INSTALLATION CHECK -------------------
 ;
-                cmp     al, 0
-                jne     i2fae01
+		cmp	al, 0
+		jne	i2fae01
 
-                call    check_name              ; APPEND ?
-                jne     chain                   ; Nope, chain to orig. handler
+		call	check_name		; APPEND ?
+		jne	chain			; Nope, chain to orig. handler
 
-                mov     al, 0xFF                ; Say YES and return
-                iret
+		mov	al, 0xFF		; Say YES and return
+		iret
 
 ; ----- 2FAE01 : INSTALLABLE COMMAND - EXECUTE ------------------------------
 ;
-i2fae01:        cmp     al, 1
-                jne     chain
-                
-                call    check_name              ; APPEND ?
-                jne     chain
+i2fae01:	cmp	al, 1
+		jne	chain
 
-                mov     byte [ds:si], 0         ; Do not execute on return
+		call	check_name		; APPEND ?
+		jne	chain
 
-                mov     [cs:cmdnambuf], si      ; Save command name and line
-                mov     [cs:cmdnambuf+2], ds    ; buffers
-                mov     [cs:cmdlinbuf], bx      ;
-                mov     [cs:cmdlinbuf+2], ds    ;
+		mov	byte [ds:si], 0		; Do not execute on return
 
-                mov     byte [cs:p_flags], RESIDENT     ; Set resident flag
-                                                        ; and clean the rest
+		mov	[cs:cmdnambuf], si	; Save command name and line
+		mov	[cs:cmdnambuf+2], ds	; buffers
+		mov	[cs:cmdlinbuf], bx	;
+		mov	[cs:cmdlinbuf+2], ds	;
 
-                push    bx
-                push    cx
-                push    es
-                push    si
+		mov	byte [cs:p_flags], RESIDENT	; Set resident flag
+							; and clean the rest
 
-                xor     cx, cx
-                inc     bx                      ;
-                mov     cl, [ds:bx]             ; Get cmdline length
-                sub     cl, 6                   ; Skip "APPEND"
-                add     bx, 7                   ;
+		push	bx
+		push	cx
+		push	es
+		push	si
 
-                push    ds
-                pop     es
+		xor	cx, cx
+		inc	bx			;
+		mov	cl, [ds:bx]		; Get cmdline length
+		sub	cl, 6			; Skip "APPEND"
+		add	bx, 7			;
 
-                mov     si, bx                  ; Parse cmd line (in es:si,
-                call    parse_cmds              ; length in cx)
+		push	ds
+		pop	es
 
-                pop     si
-                pop     es
-                pop     cx
-                pop     bx
-                
-                iret
+		mov	si, bx			; Parse cmd line (in es:si,
+		call	parse_cmds		; length in cx)
+
+		pop	si
+		pop	es
+		pop	cx
+		pop	bx
+
+		iret
 
 ; ---------------------------------------------------------------------------
 ;  2FB7 : APPEND
@@ -103,112 +103,112 @@ i2fae01:        cmp     al, 1
 
 ; ----- 2FB700 : APPEND - INSTALLATION CHECK --------------------------------
 ;
-i2fb700:        cmp     al, 0x00                ; MS-DOS APPEND seems to use
-                jne     i2fb701                 ; 0x10 instead.
-                                                ;
-                mov     al, 0xFF
-                iret
+i2fb700:	cmp	al, 0x00		; MS-DOS APPEND seems to use
+		jne	i2fb701			; 0x10 instead.
+						;
+		mov	al, 0xFF
+		iret
 
 ; ----- 2FB701 : APPEND - GET APPEND PATH (Microtek) ------------------------
 ;
-;i2fb701:       cmp     al, 0x01
-;               jne     i2fb702
-;               jmp     i2fb704                 ; Same as 2FB704??????
-i2fb701:                                        ; Not documented, unimplemented
+;i2fb701:	cmp	al, 0x01
+;		jne	i2fb702
+;		jmp	i2fb704			; Same as 2FB704??????
+i2fb701:					; Not documented, unimplemented
 
 ; ----- 2FB702 : APPEND - GET VERSION ---------------------------------------
 ;
-i2fb702:        cmp     al, 0x02                ; In MS-DOS 5.0+ APPEND this
-                jne     i2fb703                 ; is a stub that returns
-                mov     ax, 0xFDFD              ; 0xFFFF
-                iret
+i2fb702:	cmp	al, 0x02		; In MS-DOS 5.0+ APPEND this
+		jne	i2fb703			; is a stub that returns
+		mov	ax, 0xFDFD		; 0xFFFF
+		iret
 
 ; ----- 2FB703 : APPEND - HOOK INT 21 ---------------------------------------
 ;
-i2fb703:        cmp     al, 0x03
-                jne     i2fb704
-                xor     byte [cs:handler], USERHNDL     ; Toggle flag
-                mov     [cs:usr_int21], di              ; Set user handler
-                mov     [cs:usr_int21+2], es
-                push    cs                              ; Returns append int21
-                pop     es                              ; handler
-                mov     di, int21usr
-                iret
+i2fb703:	cmp	al, 0x03
+		jne	i2fb704
+		xor	byte [cs:handler], USERHNDL	; Toggle flag
+		mov	[cs:usr_int21], di		; Set user handler
+		mov	[cs:usr_int21+2], es
+		push	cs				; Returns append int21
+		pop	es				; handler
+		mov	di, int21usr
+		iret
 
 ; ----- 2FB704 : APPEND - GET APPEND PATH -----------------------------------
 ;
-i2fb704:        cmp     al, 0x04
-                jne     i2fb706
-                push    cs
-                pop     es 
-                mov     di, append_path
-                iret
+i2fb704:	cmp	al, 0x04
+		jne	i2fb706
+		push	cs
+		pop	es
+		mov	di, append_path
+		iret
 
 ; ----- 2FB706 : APPEND - GET APPEND FUNCTION STATE -------------------------
 ;
-i2fb706:        cmp     al, 0x06
-                jne     i2fb707
-                mov     bx, [cs:append_state]
-                iret
+i2fb706:	cmp	al, 0x06
+		jne	i2fb707
+		mov	bx, [cs:append_state]
+		iret
 
 ; ----- 2FB707 : APPEND - SET APPEND FUNCTION STATE -------------------------
 ;
-i2fb707:        cmp     al, 0x07
-                jne     i2fb710
-                mov     [cs:append_state], bx
-                iret
+i2fb707:	cmp	al, 0x07
+		jne	i2fb710
+		mov	[cs:append_state], bx
+		iret
 
 ; ----- 2FB710 : APPEND - GET VERSION INFO ----------------------------------
 ;
-i2fb710:        cmp     al, 0x10
-                jne     i2fb711
-                mov     ax, [cs:append_state]
-                xor     bx, bx          ; Emulate MS-DOS 5.0 APPEND
-                xor     cx, cx          ;
-                mov     dl, 5           ;
-                mov     dh, 0           ;
-                iret
+i2fb710:	cmp	al, 0x10
+		jne	i2fb711
+		mov	ax, [cs:append_state]
+		xor	bx, bx		; Emulate MS-DOS 5.0 APPEND
+		xor	cx, cx		;
+		mov	dl, 5		;
+		mov	dh, 0		;
+		iret
 
 ; ----- 2FB711 : APPEND - SET RETURN FOUND NAME STATE -----------------------
 ;
-i2fb711:        cmp     al, 0x11
-                jne     end_i2fb7
+i2fb711:	cmp	al, 0x11
+		jne	end_i2fb7
 
-                push    ax
-                push    bx
-                push    es
-                mov     ah, 0x51                ; Get caller's PSP pointer
-                int     0x21
-                mov     es, bx
-                mov     byte [es:0x3D], 0x01    ; Set state in caller's PSP
-                pop     es
-                pop     bx
-                pop     ax
-                iret
+		push	ax
+		push	bx
+		push	es
+		mov	ah, 0x51		; Get caller's PSP pointer
+		int	0x21
+		mov	es, bx
+		mov	byte [es:0x3D], 0x01	; Set state in caller's PSP
+		pop	es
+		pop	bx
+		pop	ax
+		iret
 
-end_i2fb7:      jmp     far [cs:old_int2f]
+end_i2fb7:	jmp	far [cs:old_int2f]
 
 
 ; ---------------------------------------------------------------------------
 ; Function: check_name - Checks if command name is "APPEND"
 ;
-; Args:     DS:SI      - Command name buffer 
-;           
+; Args:	    DS:SI      - Command name buffer
+;
 ; Returns:  Set Zero flag if found
 ;
-check_name:     push    cx
-                push    di
-                push    si
-                push    es
-                mov     cx, cs
-                mov     es, cx
-                mov     di, cmd_id              ; 6, "APPEND"
-                mov     cx, 7                   ; Max length to check
-                cld
-                repe    cmpsb
-                pop     es
-                pop     si
-                pop     di
-                pop     cx
-                ret
+check_name:	push	cx
+		push	di
+		push	si
+		push	es
+		mov	cx, cs
+		mov	es, cx
+		mov	di, cmd_id		; 6, "APPEND"
+		mov	cx, 7			; Max length to check
+		cld
+		repe	cmpsb
+		pop	es
+		pop	si
+		pop	di
+		pop	cx
+		ret
 
