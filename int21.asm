@@ -18,6 +18,9 @@
 ; INT21.ASM - Int21h hook
 ;
 ; 04-06-01  casino_e@terra.es   First version
+; 13-06-03  Eric Auer           Make older versions of nasm happy
+; 15-06-03  casino_e@terra.es   Save some bytes by re-using buffers. (Suggested
+;                               by Eric)
 ;
 
 old_int21       dd      0               ; Original INT 21 handler
@@ -26,14 +29,14 @@ usr_int21       dd      0               ; User INT 21 handler
 handler         db      0               ; Flag: chain to user int21 handler
 USERHNDL        equ     1
 
-dirname         times   64 db 0
+%define dirname tempDTA
 defdrive        db      0               ; 0x00 == A, 0x01 == B, etc.
-FCB_off:
+%define FCB_off filename_off
 filename_off    dw      0
-FCB_seg:
+%define FCB_seg filename_seg
 filename_seg    dw      0
 basename_off    dw      0
-new_filepath    times   0x80 db 0
+%define new_filepath cmdline
 
 flags           dw      0               ; Saved registers before an int call
 r_ax            dw      0               ;
@@ -199,8 +202,10 @@ i2123_ret:      call    clear_rfnstate  ; Clear return found name state
 ; ---------------------------------------------------------------------------
 ;
 i216c:          test    dl, 0x10                ; Create if file doesn't exist?
-                jnz     i21_jump                ; Then do not execute
-                call    get_rfnstate            ; Get and store rfn state flag
+                jz      i216c_tail              ; then get and store...
+                jmp     i21_jump                ; else do not execute
+
+i216c_tail:     call    get_rfnstate            ; Get and store rfn state flag
                 popf
                 mov     [cs:filename_off], si
                 jmp     i213d_2
@@ -210,15 +215,15 @@ i216c:          test    dl, 0x10                ; Create if file doesn't exist?
 ; ---------------------------------------------------------------------------
 ;
 i214e:          test    cl, 0x08                ; Is it a volume label?
-                jnz     i21_jump                ; Yes, just chain
-
+                jz      i214b03                 ; No, go on
+                jmp     i21_jump                ; Yes, just chain
 
 ; ---------------------------------------------------------------------------
 ;  213D  : OPEN      - OPEN EXISTING FILE
 ;  214B03: EXEC      - LOAD OVERLAY
 ; ---------------------------------------------------------------------------
 ;
-i214b03:
+i214b03:        
 i213d:          call    get_rfnstate            ; Get and store rfn state flag
                 popf
                 mov     [cs:filename_off], dx
@@ -237,10 +242,10 @@ i213d_2:        mov     [cs:filename_seg], ds
                 mov     [cs:s_ax], ax           ; Saved result
                 mov     [cs:s_cx], cx           ; Saved result (6C)
                 jc      i213d_ckerr
-                jmp     i213d_done              ; File found, return
+                jmp     i213d_found             ; File found, return
 i213d_ckerr:    call    check_error
                 jnc     i213d_srch
-                jmp     i213d_done              ; File found, other error
+                jmp     i213d_found             ; File found, other error
 
 i213d_srch:     test    word [cs:append_state], APPEND_ENVIRON  ; /E?
                 jz      i213d_noenv
@@ -263,7 +268,8 @@ i213d_basename: call    basename
                 cmp     [cs:filename_off], si
                 je      i213d_srch2     ; Okay, filename had no path
                 test    word [cs:append_state], APPEND_SRCHPTH ;  /PATH:ON
-                jz      i213d_done
+                jnz     i213d_srch2
+                jmp     i213d_done
 
 i213d_srch2:    mov     [cs:basename_off], si   ; Store offset to basename
 
