@@ -18,9 +18,12 @@
 ; 04-06-01  casino_e@terra.es   First version
 ; 04-06-03  casino_e@terra.es   Add note to help stating that when /E is used,
 ;                               no paths that can appear on the command line.
+; 13-06-03  Eric Auer           Make older versions of nasm happy
 ;
 
+%ifdef NEW_NASM
         cpu     8086
+%endif
 
 segment         code
 ; ===========================================================================
