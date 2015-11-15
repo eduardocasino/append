@@ -18,13 +18,15 @@
 ; ENVIRON.ASM - Get/Set append path from/to environment
 ;
 ; 04-06-01  casino_e@terra.es   First version
+; 04-06-14  casino_e@terra.es   Update comments on FreeCOM's MUX-AE
 ;
 
 
 environ         dw      0       ; Segment of parent environment
 envsize         dw      0
 
-; Command name is padded with blanks in set_lin as required by FreeCOM
+; Command name is padded with blanks in set_lin as required by erlier
+; versions of FreeCOM
 ;
 set_nam         db      3, "SET"
 SET_NAM_LEN     equ     $ - set_nam
@@ -140,7 +142,8 @@ setenv_append:  pushf
 
                 ; Updates command name and line buffers with "SET APPEND=..."
                 ; this will be executed by the command interpreter on return.
-                ; Command name is padded with chars. Required by FreeCOM
+                ; Command name is padded with chars. Required by erlier
+                ; versions of FreeCOM
                 ;
                 mov     si, set_nam             ; Update Command Name with
                 mov     di, [cs:cmdnambuf]      ; "SET"
