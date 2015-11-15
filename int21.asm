@@ -17,6 +17,9 @@
 ;
 ; INT21.ASM - Int21h hook
 ;
+; 04-06-01  casino_e@terra.es   First version
+;
+
 old_int21       dd      0               ; Original INT 21 handler
 usr_int21       dd      0               ; User INT 21 handler
 
