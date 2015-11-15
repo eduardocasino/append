@@ -15,8 +15,9 @@
 ; along with this program; if not, write to the Free Software
 ; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ;
-
-; FIXME: Install in XMS, EMS or UMB, if available.
+; 04-06-01  casino_e@terra.es   First version
+; 04-06-03  casino_e@terra.es   Add note to help stating that when /E is used,
+;                               no paths that can appear on the command line.
 ;
 
         cpu     8086
@@ -78,7 +79,7 @@ Help    db      13, "FreeDOS APPEND. Enables programs to open data files in "
         db      "    /X:OFF       Applies APPEND only to "
         db              "requests to open files.", 13, 10
         db      "                 Defaults to /X:OFF", 13, 10
-        db      "    /PATH:ON     Searches appended directories for file "
+        db      "    /PATH:ON     Search appended directories for file "
         db              "requests that already", 13, 10
         db      "                 include a path.  This is the default "
         db              "setting.", 13, 10
@@ -86,7 +87,9 @@ Help    db      13, "FreeDOS APPEND. Enables programs to open data files in "
         db      "    /E           Stores the appended directory "
         db              "list in the environment.", 13, 10
         db      "                 /E may be used only in the first invocation "
-        db              "of APPEND", 13, 10, 10
+        db      "of APPEND. You", 13, 10
+        db      "                 can not include any paths on the same "
+        db      "command line as /E.", 13, 10, 10
         db      "  APPEND ", 59, " clears the list of appended "
         db              "directories.", 13, 10
         db      "  APPEND without parameters displays the list of appended "
