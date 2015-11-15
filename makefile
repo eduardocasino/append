@@ -1,9 +1,9 @@
 # Makefile for building under Linux
 #
 
-UPX=/home/eduardo/fdos/upx/upx
+UPX=~/fdos/upx/upx
 
-INSTDIR=/home/eduardo/.dosemu/drives/c/bin/
+INSTDIR=../../bin
 
 all: append.exe
 
