@@ -18,9 +18,10 @@
 ; INT21.ASM - Int21h hook
 ;
 ; 04-06-01  casino_e@terra.es   First version
-; 13-06-03  Eric Auer           Make older versions of nasm happy
-; 15-06-03  casino_e@terra.es   Save some bytes by re-using buffers. (Suggested
+; 04-06-13  Eric Auer           Make older versions of nasm happy
+; 04-06-15  casino_e@terra.es   Save some bytes by re-using buffers. (Suggested
 ;                               by Eric)
+; 04-06-17  casino_e@terra.es   Move tempDTA to PSP
 ;
 
 old_int21       dd      0               ; Original INT 21 handler
@@ -54,7 +55,7 @@ s_cx            dw      0               ;
 rfnstate        dd      0               ; Pointer to Real Filename state flag
 
 DTA             dd      0
-tempDTA         times 0x80 db 0
+tempDTA         dd      0
 
 ; ===========================================================================
 ;  INT 21 HOOK
@@ -140,8 +141,9 @@ i2123:          call    get_rfnstate
                 savef   [cs:flags]
                 mov     [cs:s_ax], ax           ; Saved result
                 or      al, al  
-                jz      i2123_ret               ; File found, return
-                call    check_extended  ; checks extended error
+                jz      i2123_check
+		jmp	i2123_ret               ; File found, return
+i2123_check:    call    check_extended  ; checks extended error
                 jc      i2123_ret       ; Error other than file or
                                         ; path not found
 
@@ -153,7 +155,7 @@ i2123:          call    get_rfnstate
 i2123_noenv:    call    save_drive              ; Save drive letter from
                                                 ; FCB in [cs:defdrive]
                 mov     si, append_path
-                mov     di, new_filepath
+                lds     di, [cs:new_filepath]
                 call    find_first      ; Get first path from APPEND
 
 i2123_srch:     cmp     byte [cs:di], 0 ; No more paths
@@ -181,7 +183,7 @@ i2123_srch:     cmp     byte [cs:di], 0 ; No more paths
                 jc      i2123_done      ; Error other than file or
                                         ; path not found
 
-i2123_again:    mov     di, new_filepath
+i2123_again:    lds     di, [cs:new_filepath]
                 call    find_next
                 jmp     i2123_srch
 
@@ -278,7 +280,7 @@ i213d_srch2:    mov     [cs:basename_off], si   ; Store offset to basename
                 mov     ds, ax
 
                 mov     si, append_path
-                mov     di, new_filepath
+                lds     di, [cs:new_filepath]
                 call    find_first              ; Get first path from APPEND
 
 i213d_srchloop: cmp     byte [cs:di], 0         ; No more paths
@@ -294,11 +296,11 @@ i213d_srchloop: cmp     byte [cs:di], 0         ; No more paths
                 mov     ax, [cs:r_ax]
                 mov     bx, [cs:r_bx]
                 mov     cx, [cs:r_cx]
-                mov     dx, new_filepath; F 3D uses ds:dx for filename
+                lds     dx, [cs:new_filepath]; F 3D uses ds:dx for filename
                 cmp     ah, 0x6C
                 jne     i213d_callint
                                         ; Function 6C:
-                mov     si, new_filepath; Function 6C uses ds:si for filename
+                lds     si, [cs:new_filepath]; 6C uses ds:si for filename
                 mov     dx, [cs:r_dx]   ; Action if file does/doesn't exist
 
 i213d_callint:  call    call_int21
@@ -309,7 +311,7 @@ i213d_callint:  call    call_int21
                 call    check_error
                 jc      i213d_found             ; File found, other error
 
-i213d_again:    mov     di, new_filepath
+i213d_again:    lds     di, [cs:new_filepath]
                 call    find_next
                 jmp     i213d_srchloop
 
@@ -371,11 +373,11 @@ i214b00_noenv:  mov     ds, [cs:filename_seg]
                 mov     ds, ax
 
                 mov     ah, 0x1A                ; Sets temporary DTA
-                mov     dx, tempDTA
+                lds     dx, [cs:tempDTA]
                 call    call_int21
 
                 mov     si, append_path
-                mov     di, new_filepath
+                lds     di, [cs:new_filepath]
                 call    find_first              ; Get first path from APPEND
 
 i214b00_schlp:  cmp     byte [cs:di], 0         ; No more paths
@@ -390,18 +392,18 @@ i214b00_schlp:  cmp     byte [cs:di], 0         ; No more paths
 
                 mov     ax, 0x4E00              ; FindFirst
                 mov     cx, 0x0037              ; Do not find volume labels
-                mov     dx, new_filepath
+                lds     dx, [cs:new_filepath]
                 call    call_int21
 
                 jnc     i214b00_found           ; Success
                 call    check_error
                 jc      i214b00_found           ; File found, other error
 
-                mov     di, new_filepath
+                lds     di, [cs:new_filepath]
                 call    find_next
                 jmp     i214b00_schlp
 
-i214b00_found:  mov     dx, new_filepath        ; Exec with found path
+i214b00_found:  lds     dx, [cs:new_filepath]   ; Exec with found path
                 jmp     i214b00_exec
 
 i214b00_nfound: mov     dx, [cs:filename_off]   ; Exec with orig path
@@ -476,7 +478,7 @@ set_rfn:        push    ax
                 call    call_int21      ; (returned in ES:BX)
                 add     bx, 0x1E        ; Offset of uppercased found filename
 
-                mov     si, new_filepath
+                lds     si, [cs:new_filepath]
                 call    basename        ; DS:SI points to basename
                 mov     di, si
                 mov     si, bx
@@ -487,9 +489,7 @@ set_rfn:        push    ax
                 call    strcpy          ; new_filepath updated with 
                                         ; uppercased found filename
 
-sr_copy:        mov     bx, cs
-                mov     ds, bx
-                mov     si, new_filepath
+sr_copy:        lds     si, [cs:new_filepath]
                 mov     es, [cs:filename_seg]
                 mov     di, [cs:filename_off]
                 call    strcpy                  ; Copy last file path
@@ -654,9 +654,7 @@ restor_path:    push    ax
                 push    dx
                 push    ds
 
-                push    cs
-                pop     ds
-                mov     dx, dirname
+                lds     dx, [cs:dirname]
                 mov     ah, 0x3B        ; Set current directory
                 call    call_int21              
 
@@ -678,29 +676,32 @@ restor_path:    push    ax
 set_newpath:    clc
                 push    ax
                 push    dx
+                push    di
                 push    si
                 push    ds
+                push    es
 
-                mov     si, dirname
+                lds     si, [cs:dirname]
 
-                cmp     byte [cs:new_filepath+1], ':'   ; Check if there is a
+		les	di, [cs:new_filepath]
+                cmp     byte [es:di+1], ':'		; Check if there is a
                                                         ; drive letter
                 je      sn_getdrive
 
                 xor     al, al                          ; Default drive
                 jmp     sn_setdrive
 
-sn_getdrive:    mov     al, [cs:new_filepath]           ; Stores drive letter
-                mov     byte [cs:si], al                ; in buffer
+sn_getdrive:    mov     al, [es:di]                     ; Stores drive letter
+                mov     byte [ds:si], al                ; in buffer
                 inc     si
-                mov     byte [cs:si], ':'
+                mov     byte [ds:si], ':'
                 inc     si
                 toupper al
                 sub     al, 0x40        ; 'A' == 1, ... ('A' == 0x41 ASCII)
 
 sn_setdrive:    call    set_drive       ; Set new drive in FCB
 
-                mov     byte [cs:si], '\'       ; Add leading backslash
+                mov     byte [ds:si], '\'       ; Add leading backslash
                 inc     si
 
                 push    cs
@@ -710,13 +711,14 @@ sn_setdrive:    call    set_drive       ; Set new drive in FCB
                 call    call_int21              ; Get current path for drive
                 jc      sn_return
                 
-                mov     si, new_filepath
-                mov     dx, si          ; DS already set
+                lds     dx, [cs:new_filepath]
                 mov     ah, 0x3B        ; Set default directory
                 call    call_int21
 
-sn_return:      pop     ds
+sn_return:      pop	es
+		pop     ds
                 pop     si
+                pop     di
                 pop     dx
                 pop     ax
                 ret
@@ -797,7 +799,7 @@ findp           dw      0               ; Pointer to next element
 ; Function: find_first - Gets first element from a semicolon separated list
 ;
 ; Args:     CS:SI      - Semicolon separated, null terminated string
-;           CS:DI      - Buffer to hold the null terminated element,
+;           DS:DI      - Buffer to hold the null terminated element,
 ;                        without semicolon
 ;           
 ; Returns:  AX         - points to the end of the CS:DI string 
@@ -808,7 +810,7 @@ find_first:     push    si
                 push    cx
                 xor     cx, cx
 ff_loop:        mov     al, [cs:si]
-                mov     [cs:di], al
+                mov     [ds:di], al
                 cmp     al, ';'
                 je      ff_found
                 or      al, al
@@ -820,9 +822,9 @@ ff_loop:        mov     al, [cs:si]
 ff_found:       inc     si
 ff_eostr:       or      cx, cx
                 jz      ff_empty
-                mov     byte [cs:di], 0x5C      ; Add '\' to the end
+                mov     byte [ds:di], 0x5C      ; Add '\' to the end
                 inc     di
-                mov     byte [cs:di], 0         ; Terminate string
+                mov     byte [ds:di], 0         ; Terminate string
 ff_empty:       mov     [cs:findp], si          ; Store pointer to next element
                 mov     ax, di
                 pop     cx
