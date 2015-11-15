@@ -37,3 +37,9 @@
 
 	* Updated help to make clear that APPEND becomes an internal command
 	  extension after its first execution (Bernd Blaauw)
+
+06-01-23 Version 0.6
+
+	* Bugfix: Append now recognises itself when called with a prepended
+	  path, like MS APPEND (thanks to Blair Campbell for the report and
+          test case)
