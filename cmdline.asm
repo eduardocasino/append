@@ -24,14 +24,16 @@
 ;                               the command line.
 ;                               No paths that can appear on the command line
 ;                               when /E is used. Abort with error if it happens.
-; 13-06-03  casino_e@terra.es   Fix a bug in command parsing.
-;           Eric Auer           Make older versions of nasm happy
+; 04-06-13  casino_e@terra.es   Fix a bug in command parsing.
+;           Eric Auer           Make older versions of nasm happy.
+; 04-06-17  casino_e@terra.es   Move cmdline to last 128 bytes of PSP and first
+;                               128 bytes of program.
 ;
 
 MAXARGS         equ     20
 setenv          db      0               ; Set Environment indicator
 currpar         dw      0               ; Pointer to current argument
-cmdline         times 0x80 db 0         ; Copy of command line
+cmdline         dw      0x80, 0         ; Copy of command line
 
 p_xon           db      "X:ON", 0
 p_xoff          db      "X:OFF", 0
@@ -71,9 +73,7 @@ copy_cmdline:   push    di
                 push    es
                 pop     ds
 
-                mov     di, cmdline
-                push    cs
-                pop     es
+                les     di, [cs:cmdline]
                 
 ce_copyloop:    lodsb
                 stosb
@@ -174,9 +174,7 @@ parse_cmds:
 
                 push    cs
                 pop     ds
-                push    cs
-                pop     es
-                mov     si, cmdline
+                les     si, [cs:cmdline]
                 
 
                 mov     byte [cs:setenv], 0
