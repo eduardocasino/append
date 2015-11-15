@@ -26,7 +26,9 @@
 ; 04-06-27  casino_e@terra.es	Back again to EXE (as suggested by Arkady),
 ;				but just adding a minimalistic EXE header
 ;				Bug: Now it _really_ frees the environment
+; 06-01-23  casino_e@terra.es   Add version string
 ;
+%define	VERSION	"5.0.0.6"
 
 %ifdef NEW_NASM
 	cpu	8086
@@ -53,7 +55,7 @@ SECTION .text
 %include	"int2f.asm"
 %include	"int21.asm"
 
-cmd_id		db	6		; 6, "APPEND"
+cmd_id
 append_prefix	db	"APPEND="
 append_path	times 0x100 db 0
 
@@ -86,8 +88,8 @@ Help	db	13, "FreeDOS APPEND. Enables programs to open data files in "
 	db		"specified directories as", 13, 10
 	db		"		 if the files were in the current "
 	db		"directory.", 13, 10
-	db	13, "(C) 2004 Eduardo Casino, under the terms of the GNU "
-	db		"GPL, Version 2", 13, 10, 10
+	db	13, "Ver. ", VERSION, " (C) 2004-2006 Eduardo Casino, under "
+	db	"the GNU GPL, Version 2", 13, 10, 10
 	db	"Syntax:", 13, 10, 10
 	db	"  APPEND [[drive:]path[", 59, "...]] [/X[:ON|:OFF]] "
 	db		"[/PATH:ON|/PATH:OFF] [/E]", 13, 10
