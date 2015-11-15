@@ -1,11 +1,6 @@
 # Makefile for building under Linux
 #
-# Yes! you can cross-build under Linux. You just need the Linux versions of
-# nasm and (optionally) upx and this patch to compile alink under Linux:
-# http://perso.wanadoo.es/samelborp/misc/alinklnx.zip
-#
 
-ALINK=/home/eduardo/fdos/alink/alink
 UPX=/home/eduardo/fdos/upx/upx
 
 INSTDIR=/root/.dosemu/drives/c/src/append/
@@ -13,16 +8,15 @@ INSTDIR=/root/.dosemu/drives/c/src/append/
 
 all: append.exe
 
-install:
+install: all
 	cp append.exe $(INSTDIR)
 	
 clean:
-	rm -f append.exe append.obj
+	rm -f append.exe append.com
 
-append.exe: append.obj
-	$(ALINK) -oEXE -o $@ $<
-	$(UPX) --8086 $@
+append.exe: append.com
+	$(UPX) --8086 -f -o $@ $<
 
-append.obj: append.asm cmdline.asm environ.asm int21.asm int2f.asm useful.mac
-	nasm -dNEW_NASM -fobj append.asm -o $@
+append.com: append.asm cmdline.asm environ.asm int21.asm int2f.asm useful.mac
+	nasm -dNEW_NASM -fbin append.asm -o $@
 
