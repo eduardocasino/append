@@ -17,6 +17,9 @@
 ;
 ; INT2F.ASM - Int2Fh hook
 ;
+; 04-06-01  casino_e@terra.es   First version
+;
+
 old_int2f       dd      0       ; Original INT 2F handler
 
 cmdnambuf       dd      0       ; Pointer to command name buffer
