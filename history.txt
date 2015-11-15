@@ -10,3 +10,13 @@
         * Path is no longer ignored when /E is specified, append aborts with
           an error. Again, it differs from its MS counterpart, but it is also
           saner. Thanks to Eric Auer for pointing this out.
+
+04-06-15 Version 0.3
+
+        * Fix a bug in command line parsing.
+
+        * Minor changes in readme.txt.
+
+        * Make older versions of Nasm happy (Eric Auer)
+
+        * Save some bytes by re-using some buffers (suggested by Eric)
