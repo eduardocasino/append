@@ -1,0 +1,12 @@
+04-06-01 Version 0.1
+
+04-06-03 Version 0.2
+
+        * Fix hang when switches appear before the path in the command line.
+          Now the path can be at any point in the command line. Differs from
+          MS APPEND, but it is saner. Thanks to Bernd Blaauw for reporting
+          this bug.
+
+        * Path is no longer ignored when /E is specified, append aborts with
+          an error. Again, it differs from its MS counterpart, but it is also
+          saner. Thanks to Eric Auer for pointing this out.
