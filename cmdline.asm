@@ -17,6 +17,14 @@
 ;
 ; CMDLINE.ASM - Command line processing
 ;
+; 04-06-01  casino_e@terra.es   First version
+; 04-06-03  casino_e@terra.es   Fix a hang when command switches appear before
+;                               paths in command line. Change behaviour from MS
+;                               APPEND: Now it accepts paths in any point in
+;                               the command line.
+;                               No paths that can appear on the command line
+;                               when /E is used. Abort with error if it happens.
+;
 
 MAXARGS         equ     20
 setenv          db      0               ; Set Environment indicator
@@ -194,7 +202,7 @@ pa_nextarg:     call    skipblanks
 
                 dec     si                      ; It's a path, then.
                 call    get_path                ; Get it.
-                jc      pa_done                 ; Error, we're done
+                jc      pa_return               ; Error, we're done
                 jmp     pa_nextarg
 
 do_switch:      call    process_switch
@@ -306,13 +314,12 @@ print_arg:      call    find_separator
 ;           Modifies AX, DX
 ;
 get_path:       mov     ah, [cs:p_flags]
-                test    ah, S_FOUND             ; Did any switch appeared?
-                jz      gp_path_f
-                jmp     gp_done                 ; Yeah, ignore path
-
-gp_path_f:      test    ah, A_FOUND             ; Did any append appeared?
+                test    ah, A_FOUND             ; Did any append appeared?
                 jnz     gp_toomany              ; That's too many
-                call    set_append
+                test    ah, E_FOUND             ; Using /E?
+                jnz     gp_toomany              ; No paths allowed with /E
+
+gp_setapp:      call    set_append
                 clc
                 jmp     gp_done
 
@@ -325,6 +332,7 @@ gp_toomany:     push    ds
                 pop     ds
                 call    print_arg
                 stc
+
 gp_done:        ret
 
 
@@ -362,6 +370,9 @@ sa_endcopy:     mov     byte [es:di-1], 0
 
 sa_done:        test    word [cs:append_state], APPEND_ENVIRON  ; /E?
                 jz      sa_return               ; No, done, next parameter
+
+                test    byte [cs:p_flags], RESIDENT
+                jz      sa_return               ; We're not resident, no setenv
 
                 mov     byte [cs:setenv], 0xFF  ; Mark for setting environment
 
@@ -557,8 +568,12 @@ set_e_flag:     mov     ah, [cs:p_flags]
                 call    invalid_switch
                 ret
 se_teste:       test    ah, E_FOUND
-                jz      se_set
+                jz      se_testp
                 call    invalid_switch
+                ret
+se_testp:       test    ah, A_FOUND             ; Did any append appeared?
+                jz      se_set
+                call    invalid_switch          ; /E not allowed with any path
                 ret
 se_set:         or      byte [cs:p_flags], E_FOUND|S_FOUND
                 or      word [cs:append_state], APPEND_ENVIRON
@@ -672,6 +687,7 @@ prt_help:       push    ds
                 pop     ds
                 stc
                 ret
+
 
 
 ; ---------------------------------------------------------------------------
