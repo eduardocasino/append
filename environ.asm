@@ -17,6 +17,8 @@
 ;
 ; ENVIRON.ASM - Get/Set append path from/to environment
 ;
+; 04-06-01  casino_e@terra.es   First version
+;
 
 
 environ         dw      0       ; Segment of parent environment
@@ -141,14 +143,14 @@ setenv_append:  pushf
                 ; Command name is padded with chars. Required by FreeCOM
                 ;
                 mov     si, set_nam             ; Update Command Name with
-                mov     di, [cs:cmdnambuf]      ; "SET        "
+                mov     di, [cs:cmdnambuf]      ; "SET"
                 mov     es, [cs:cmdnambuf+2]
                 mov     cx, SET_NAM_LEN
                 cld
                 rep     movsb
 
                 mov     si, set_lin             ; Update Command Line with
-                mov     di, [cs:cmdlinbuf]      ; "SET         APPEND="
+                mov     di, [cs:cmdlinbuf]      ; "SET    APPEND="
                 mov     es, [cs:cmdlinbuf+2]
                 inc     di
                 mov     bx, di                  ; Pointer to length
