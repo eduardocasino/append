@@ -20,3 +20,10 @@
         * Make older versions of Nasm happy (Eric Auer)
 
         * Save some bytes by re-using some buffers (suggested by Eric)
+
+04-06-18 Version 0.4
+
+        * APPEND is now a COM file, as suggested by Eric, but it retains
+          the .EXE extension.
+
+        * Move some data to PSP (suggested, again, by Eric)
