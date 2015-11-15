@@ -24,6 +24,8 @@
 ;                               the command line.
 ;                               No paths that can appear on the command line
 ;                               when /E is used. Abort with error if it happens.
+; 13-06-03  casino_e@terra.es   Fix a bug in command parsing.
+;           Eric Auer           Make older versions of nasm happy
 ;
 
 MAXARGS         equ     20
@@ -265,8 +267,9 @@ is_separator:   cmp     al, ' '
                 cmp     al, 0xD         ; CR (End of string)
                 je      iss_done
                 cmp     al, 9           ; TAB
-iss_done:       clc
-                ret
+                je      iss_done
+                or      al, al
+iss_done:       ret
 
 
 ; ---------------------------------------------------------------------------
@@ -441,7 +444,7 @@ ia_return:      ret
 ;          Modifies CX, DI
 ;
 %macro          is_pathon       0
-                mov     cx, 8
+                mov     cx, 7
                 mov     di, p_pon
                 call    strncasecmp
 %endmacro
@@ -454,7 +457,7 @@ ia_return:      ret
 ;          Modifies CX, DI
 ;
 %macro          is_pathoff      0
-                mov     cx, 9
+                mov     cx, 8
                 mov     di, p_poff
                 call    strncasecmp
 %endmacro
@@ -467,7 +470,7 @@ ia_return:      ret
 ;          Modifies CX, DI
 ;
 %macro          is_xon  0
-                mov     cx, 5
+                mov     cx, 4
                 mov     di, p_xon
                 call    strncasecmp
 %endmacro
@@ -480,7 +483,7 @@ ia_return:      ret
 ;          Modifies CX, DI
 ;
 %macro          is_xoff 0
-                mov     cx, 6
+                mov     cx, 5
                 mov     di, p_xoff
                 call    strncasecmp
 %endmacro
@@ -505,13 +508,16 @@ strncasecmp:    mov     al, [ds:si]
                 inc     si
                 inc     di
                 loop    strncasecmp
-snc_nomatch:    or      cx, cx
-                je      ie_return
+                or      cx, cx
+                jnz     snc_nomatch
+                mov     al, [ds:si]
                 call    is_separator
-                je      ie_return
+                je      snc_return
+snc_nomatch:    pushf
                 mov     si, [cs:currpar]
                 inc     si                      ; Skip '/'
-ie_return:      ret
+                popf
+snc_return:     ret
 
 
 ; ---------------------------------------------------------------------------
@@ -664,8 +670,7 @@ set_poff_flag:  test    byte [cs:p_flags], P_FOUND
                 call    invalid_switch
                 ret
 spoff_flag:     or      byte [cs:p_flags], P_FOUND|S_FOUND
-                and     word [cs:append_state], \
-                                (APPEND_SRCHPTH|APPEND_SRCHDRV)^0xFFFF
+                and     word [cs:append_state], (APPEND_SRCHPTH|APPEND_SRCHDRV)^0xFFFF
                 clc
                 ret
 
