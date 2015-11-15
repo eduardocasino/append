@@ -18,12 +18,16 @@
 ; INT2F.ASM - Int2Fh hook
 ;
 ; 04-06-01  casino_e@terra.es	First version
+; 06-01-23  casino_e@terra.es	Searchs for self name in command line (DS:BX)
+;                            	instead of command name (DS:SI) for better
+;                            	MS compatibility
 ;
 
 old_int2f	dd	0	; Original INT 2F handler
 
 cmdnambuf	dd	0	; Pointer to command name buffer
 cmdlinbuf	dd	0	; Pointer to command line buffer
+cmdlen		dw	0	; Real command length
 
 ; ===========================================================================
 ;  INT 2F HOOK
@@ -61,7 +65,7 @@ i2fae01:	cmp	al, 1
 		call	check_name		; APPEND ?
 		jne	chain
 
-		mov	byte [ds:si], 0		; Do not execute on return
+		mov	byte [si], 0		; Do not execute on return
 
 		mov	[cs:cmdnambuf], si	; Save command name and line
 		mov	[cs:cmdnambuf+2], ds	; buffers
@@ -78,9 +82,10 @@ i2fae01:	cmp	al, 1
 
 		xor	cx, cx
 		inc	bx			;
-		mov	cl, [ds:bx]		; Get cmdline length
-		sub	cl, 6			; Skip "APPEND"
-		add	bx, 7			;
+		mov	cl, [bx]		; Get cmdline length
+		sub	cx, [cs:cmdlen]		; Skip command
+		add	bx, [cs:cmdlen]		;
+		inc	bx
 
 		push	ds
 		pop	es
@@ -192,23 +197,83 @@ end_i2fb7:	jmp	far [cs:old_int2f]
 ; ---------------------------------------------------------------------------
 ; Function: check_name - Checks if command name is "APPEND"
 ;
-; Args:	    DS:SI      - Command name buffer
+; Args:	    DS:BX      - Command line buffer
 ;
 ; Returns:  Set Zero flag if found
 ;
-check_name:	push	cx
+check_name:	
+		push	ax
+		push	bx
+		push	cx
+		push	dx
 		push	di
 		push	si
 		push	es
-		mov	cx, cs
-		mov	es, cx
-		mov	di, cmd_id		; 6, "APPEND"
-		mov	cx, 7			; Max length to check
+		mov	cl, [bx+1]	; command line length
+		cmp	cl, 6
+		jc	.ret		; Less that 6 chars, it's not 'APPEND'
+		xor	ch, ch		; Expand to cx
+		add	bx, 2		; Points to first char
+		push	bx
+		cmp	byte [bx+1], ':'	; Drive unit?
+		jne	.savini
+		add	bx, 2		; Skip it
+		sub	cx, 2
+.savini		mov	dx, bx		; Save it
+.chkc		mov	ah, [bx]
+		call	isfnc		; Valid filename char?
+		jc	.chkback	; No, check for backslash
+.next		toupper	ah
+		mov	[bx], ah
+		inc	bx
+		dec	cx
+		jcxz	.completed
+		jmp	.chkc
+.chkback	cmp	ah, '\'
+		jne	.completed
+		mov	dx, bx		; Save position
+		inc	dx		; skip backslash
+		jmp	.next
+.completed	mov	si, dx
+		mov	[cs:cmdlen], bx	; Calculate total command length
+		sub	bx, dx		; Calculate length
+		pop	dx		; Recover original pointer
+		sub	[cs:cmdlen], dx	;
+		mov	cx, bx
+		cmp	cx, 6		; If its not 6 bytes long, it is not
+		jne	.ret		; APPEND
+		mov	ax, cs
+		mov	es, ax
+		mov	di, cmd_id	; "APPEND"
 		cld
 		repe	cmpsb
-		pop	es
+.ret:		pop	es
 		pop	si
 		pop	di
+		pop	dx
+		pop	cx
+		pop	bx
+		pop	ax
+		ret
+isfnc:				; Check if char is valid for filename
+		push	cx
+		push	si
+		push	ds
+		push	cs
+		pop	ds
+		mov	cx, nfnccount
+		mov	si, nfnc
+.loop		lodsb
+		cmp	ah, al
+		stc
+		je	.ret
+		loop	.loop
+		clc
+.ret		pop	ds
+		pop	si
 		pop	cx
 		ret
+nfnc		db	0x7f, 0x3b,' "/\[]:|<>+=,'
+nfnccount	equ	($-nfnc)
 
+		
