@@ -17,6 +17,8 @@
 ;
 ; USEFUL.MAC - Some useful macros
 ;
+; 04-06-01  casino_e@terra.es   First version
+;
 
 ; TOUPPER - Uppercase the contents of the specified register or address
 ; ARGS    - 1 - Register or address
