@@ -141,7 +141,7 @@ i2123:		call	get_rfnstate
 		savef	[cs:flags]
 		mov	[cs:s_ax], ax		; Saved result
 		or	al, al
-		jz	i2123_check
+		jnz	i2123_check
 		jmp	i2123_ret		   ; File found, return
 i2123_check:	call	check_extended	; checks extended error
 		jc	i2123_ret	; Error other than file or
