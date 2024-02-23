@@ -22,6 +22,7 @@
 ; 04-06-15  casino_e@terra.es	Save some bytes by re-using buffers. (Suggested
 ;				by Eric)
 ; 04-06-17  casino_e@terra.es	Move tempDTA to PSP
+; 02-18-24  tsupplis            Open file, Get file size using FCB logic fix
 ;
 
 old_int21	dd	0		; Original INT 21 handler

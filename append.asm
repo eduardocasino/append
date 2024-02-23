@@ -28,7 +28,8 @@
 ;				Bug: Now it _really_ frees the environment
 ; 06-01-23  casino_e@terra.es   Add version string
 ;
-%define	VERSION	"5.0.0.6"
+
+%define	VERSION	"5.0.0.7"
 
 %ifdef NEW_NASM
 	cpu	8086
