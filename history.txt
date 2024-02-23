@@ -43,3 +43,9 @@
 	* Bugfix: Append now recognises itself when called with a prepended
 	  path, like MS APPEND (thanks to Blair Campbell for the report and
           test case)
+          
+02-18-24 Version 0.7
+
+	* Bigfix: Fix to function call result check that would prevent FCB 
+	  calls from working properly and limit usage to file handle I/O. 
+	  
